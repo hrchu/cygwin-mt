@@ -1,0 +1,13 @@
+NAME="mt"
+VERSION="2.5.2"
+RELEASE=1
+CATEGORY="Utils"
+SUMMARY="Tool for controlling tape drives"
+DESCRIPTION="The mt package contains the mt tape drive management program.
+Mt (for magnetic tape drives) can control rewinding, ejecting, skipping
+files and blocks and more."
+HOMEPAGE="http://cygwin.com/"
+
+CVS_URI=":pserver:anoncvs@cygwin.com:/cvs/cygwin-apps"
+CVS_BRANCH="mt-${PV//\./_}-release"
+inherit cvs

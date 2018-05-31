@@ -1,0 +1,127 @@
+   *mt 2.5*
+   ------
+
+   - system
+     - All x86 and x64 Windows versions supported by Cygwin 1.7 and later.
+
+   - notes
+     - The default device name is "/dev/tape".  Since that doesn't
+       exist in Cygwin by default, just create a convenient symlink.
+       It's done the same way on Linux.
+
+     - If you don't want to create a symlink you can also just set the
+       environment variable "TAPE" to a convenient value if you like.
+       This, too, avoids that you'll have to use the -f option all the
+       time.
+
+     - Supports setting blocksize to 0 to enable variable blocksizes.
+
+     - `mt' supports nearly all commands of GNU-mt, except for `stwrthreshold'.
+       `mt' also supports the `mkpartition', `partseek' and `setpartition'
+       commands of the most recent mt from Fedora Linux , as well as
+       `datcompression' and `compression' both, to be compatible with both mt
+       versions used on Linux these days.
+       
+     - The output of `mt status' is now compatible to mt as used on Red Hat
+       Linux in the first place.  If you want to switch to the former GNU-mt
+       compatibel output, you can do so by setting the environment variable
+       MT_STATUS_GNU.
+       In contrast to any mt on Linux, the command `status' reports more
+       detailed information with `mt status 2' or `mt status 3'.  This also
+       allows printing the Windows-specific bits in the generic status register.
+
+     - Supports settings of capabilities using the `drvbuffer' and `stoptions'
+       commands.  To ease input, it allows to enter the value to these commands
+       using hexadecimal notation.  In case of `mt drvbuffer', the value is
+       used unchanged, in case of `stoptions' it's or'd with MT_ST_BOOLEANS
+       (see include/cygwin/mtio.h)
+       How does that work?  Please compare the below examples with the
+       MT_ST_xxx codes in include/cygwin/mtio.h.
+
+       Per the standard, buffer writes can be switched on and off by
+       simply giving 1 or 0 as value:
+
+       - mt drvbuffer 0		  switches "BUFFER_WRITES" off.
+       - mt drvbuffer 1		  switches "BUFFER_WRITES" on.
+
+       Now the serious examples:
+
+       - mt drvbuffer 0x3000001   switches "BUFFER_WRITES" on.
+       - mt drvbuffer 0x4020010   switches "PADDING" and "TWO_FM" off.
+       - mt drvbuffer 0x1000041   sets the exact bits as given in the argument,
+       				  so the example switches "AUTO_LOCK" and
+				  "BUFFER_WRITES" on, everything else off.
+       - mt stoptions 0x41        does exactly the same.
+
+       Basically, `mt stoptions 0xnnnnnnn' is equivalent to
+       `mt drvbuffer 0x1nnnnnnn'.
+
+       - mt drvbuffer 0xf0001000  sets the EOT warning zone size to 4096 bytes.
+
+       The meaning of the supported settings:
+
+       - BUFFER_WRITES: If BUFFER_WRITES is switched on, the underlying OS
+         buffers all data written to the tape.  If switched off, data is
+	 immediately written to the tape.  The default is buffered writes.
+
+       - ASYNC_WRITES: When this option is turned on, write calls return
+	 immediately and the actual write operation is executed asynchronously.
+	 This only applies to variable block size writing.
+
+       - TWO_FM: When closing the file descriptor immediately after writing
+	 to tape, the close command writes a tape filemark.  If TWO_FM is
+	 switched on, two filemarks are written and the tape is positioned
+	 right between these two filemarks.  The default is to write only one
+	 filemark.
+
+       - FAST_MTEOM: By default the MTEOM command positions the tape to the
+	 end-of-data position by spacing over 32767 filemarks.  This keeps
+	 the file numbering in sync.  With FAST_MTEOM switched on, the
+	 tape is positioned using direct spacing to EOD (if the tape drive
+	 supports this operation).  This invalidates the file number.
+
+       - AUTO_LOCK: By default, the tape drive eject mechanism keeps unlocked,
+	 unless the explicit command to lock the drive is given, using the
+	 MTLOCK ioctl command.  If AUTO_LOCK is switched on, the door is
+	 locked, as soon as a read or write command is performed.  The drive
+	 then gets automatically unlocked after the file descriptor is closed.
+
+       - SYSV: Switches on System V semantics.  On System V, if a file being
+         read is closed, the tape drive is positioned right after the
+	 following filemark, unless the filemark has just been crossed.
+	 The default is BSD semantics, which means, the tape drive is left
+	 where it is on close after read.
+
+       - NOWAIT: By default, the tape code waits for finishing tape commands.
+         If NOWAIT is on, Cygwin won't wait for some commands to succeed.
+	 These are rewinding, retension, erase, load/unload and direct 
+	 (absolute or logical) seeking.
+
+       - ECC: Switches hardware correction on and off.
+
+       - PADDING: Switches data padding on and off.  Data padding means,
+         adding filler blocks automatically on write to keep the tape
+	 streaming at constant speed.  This might reduce the capacitity.
+
+       - REPORT_SM: Switches reporting of setmarks on and off.
+
+       Most of the above settings also depend on the drive resp. driver
+       capabilities.  See `mt status 3'.
+
+     - Since this `mt' uses the Cygwin device driver (well, it's not
+       exactly a driver, but you get the idea), please note that
+       using a rewind device name (e.g. /dev/st0) will rewind the tape
+       after the operation!  This is equivalent to Linux.  If you e.g.
+       want to move to block 3, don't be surprised that
+
+       		mt -f /dev/st0 seek 3
+
+      ends up on block 0.  In these cases, use the appropriate no-rewind
+      device instead:
+
+		mt -f /dev/nst0 seek 3
+
+      Caution:  Even using the `status' command will rewind when used
+      on a rewind tape device!
+
+     - Send bug reports to cygwin@cygwin.com
